@@ -1,4 +1,4 @@
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext.jsx";
 import { signOut } from "firebase/auth";
 import { auth } from "../lib/firebase";
 

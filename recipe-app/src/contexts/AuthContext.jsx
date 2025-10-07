@@ -13,9 +13,12 @@ export function AuthProvider({ children }) {
       setUser(u || null);
       setLoading(false);
     });
-    return () => unsub();
+    return unsub;
   }, []);
 
   return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>;
 }
-export const useAuth = () => useContext(AuthContext);
+
+export function useAuth() {
+  return useContext(AuthContext);
+}

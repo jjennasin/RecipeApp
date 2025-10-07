@@ -7,6 +7,7 @@ import SignUp from "./pages/SignUp.jsx";
 import AccountPage from "./pages/AccountPage.jsx";
 import "./index.css";
 
+
 // router setup
 const router = createBrowserRouter([
   { path: "/", element: <SignIn /> },
