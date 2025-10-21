@@ -1,9 +1,8 @@
-import { onCall } from "firebase-functions/v2/https";
-import * as admin from "firebase-admin";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "./firebase";
 
-admin.initializeApp();
-
-// Minimal callable just to prove deploy works
-export const ping = onCall(() => {
-  return { ok: true, ts: Date.now() };
-});
+export async function generateRecipe(prompt) {
+  const call = httpsCallable(functions, "generateRecipe");
+  const res = await call({ prompt });
+  return res.data; // { recipeId }
+}
