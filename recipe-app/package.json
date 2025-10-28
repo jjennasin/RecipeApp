@@ -7,10 +7,18 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "backend": "node src/server/api.js",
+    "test-gemini": "node src/services/test.js"
   },
   "dependencies": {
     "@google-cloud/vision": "^5.3.3",
+<<<<<<< HEAD
+=======
+    "@google/generative-ai": "^0.24.1",
+    "@tailwindcss/vite": "^4.1.14",
+    "dotenv": "^17.2.3",
+>>>>>>> a04b3c0326459adf9b270806797755797d837739
     "firebase": "^12.3.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
