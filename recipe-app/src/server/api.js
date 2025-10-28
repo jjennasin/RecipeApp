@@ -1,8 +1,9 @@
 // src/server/api.js
+import "dotenv/config";
+
 import express from "express";
 import cors from "cors";
 import { generateRecipe } from "../services/gemini.js";
-
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -30,3 +31,7 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () =>
   console.log(`Gemini API server running on port ${PORT}`)
 );
+
+console.log("GEMINI_API_KEY present?", !!process.env.GEMINI_API_KEY, 
+  "len:", process.env.GEMINI_API_KEY?.length, 
+  "head:", process.env.GEMINI_API_KEY?.slice(0,6));

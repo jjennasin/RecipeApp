@@ -13,20 +13,17 @@
   },
   "dependencies": {
     "@google-cloud/vision": "^5.3.3",
-<<<<<<< HEAD
-=======
     "@google/generative-ai": "^0.24.1",
     "@tailwindcss/vite": "^4.1.14",
     "dotenv": "^17.2.3",
->>>>>>> a04b3c0326459adf9b270806797755797d837739
     "firebase": "^12.3.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.3"
+    "react-router-dom": "^7.9.3",
+    "tailwindcss": "^4.1.14"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
-    "@tailwindcss/vite": "^4.1.14",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",
@@ -35,7 +32,6 @@
     "eslint-plugin-react-refresh": "^0.4.22",
     "firebase-tools": "^14.19.1",
     "globals": "^16.4.0",
-    "tailwindcss": "^4.1.14",
     "vite": "^7.1.7"
   }
 }
