@@ -49,7 +49,7 @@ export default function SignUp() {
           data-layer="input"
           className="Input self-stretch flex flex-col justify-start items-start gap-5 overflow-hidden">
             
-          {/* Email Field */}
+          {/* Email */}
           <div className="Email flex flex-col justify-start items-start gap-[5px] overflow-hidden">
             <label className="text-darkRed text-base font-normal font-['Franklin_Gothic_Book']">
               Email
@@ -57,11 +57,14 @@ export default function SignUp() {
             <input
               type="email"
               placeholder="Enter your email"
-              className="w-72 h-12 p-2.5 rounded-[10px] text-darkRed font-['Franklin_Gothic_Book'] placeholder:text-darkRed/50 focus:outline-lighterRed"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-72 h-12 p-2.5 rounded-[10px] border border-darkYellow text-darkRed font-['Franklin_Gothic_Book'] placeholder:text-lighterRed focus:outline-none focus:ring-0"
             />
           </div>
 
-          {/* Password Field */}
+          {/* Password */}
           <div className="Pass flex flex-col justify-start items-start gap-[5px] overflow-hidden">
             <label className="text-darkRed text-base font-normal font-['Franklin_Gothic_Book']">
               Password
@@ -69,11 +72,14 @@ export default function SignUp() {
             <input
               type="password"
               placeholder="Enter your password"
-              className="w-72 h-12 p-2.5 rounded-[10px] text-darkRed font-['Franklin_Gothic_Book'] placeholder:text-darkRed/50 focus:outline-lighterRed"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-72 h-12 p-2.5 rounded-[10px] border border-darkYellow text-darkRed font-['Franklin_Gothic_Book'] placeholder:text-lighterRed focus:outline-none focus:ring-0"
             />
           </div>
 
-          {/* Sign Up Button */}
+          {/* Sign Up */}
           <button
             type="submit"
             className="w-72 h-12 p-2.5 bg-lighterRed rounded-[10px] text-white text-base font-normal font-['Franklin_Gothic_Book'] hover:bg-darkRed transition-all"
@@ -96,6 +102,13 @@ export default function SignUp() {
               Sign In
             </a>
           </div>
+
+          {/* Error */}
+          {err && (
+            <div className="text-darkRed text-sm mt-2">
+              {err.replace("Firebase:", "").trim()}
+            </div>
+          )}
         </div>
       </div>
 
