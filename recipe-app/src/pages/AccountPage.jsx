@@ -14,7 +14,7 @@ export default function AccountPage() {
         <button onClick={() => signOut(auth)}>Sign out</button>
       </div>
       <div>Welcome, {user.displayName || user.email}</div>
-      <div>Your UID: {user.uid}</div>
+      {/* <div>Your UID: {user.uid}</div> */}
     </div>
   );
 }

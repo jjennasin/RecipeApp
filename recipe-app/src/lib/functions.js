@@ -1,9 +1,15 @@
-import { onCall } from "firebase-functions/v2/https";
-import * as admin from "firebase-admin";
+import { httpsCallable } from "firebase/functions";
+import { auth, functions } from "./firebase";
 
-admin.initializeApp();
+export async function callGenerateRecipe({ prompt }) {
+  if (!auth.currentUser) throw new Error("Please sign in first.");
+  const fn = httpsCallable(functions, "generateRecipe");
+  const res = await fn({ prompt });
+  return res.data; // { recipeId }
+}
 
-// Minimal callable just to prove deploy works
-export const ping = onCall(() => {
-  return { ok: true, ts: Date.now() };
-});
+export async function callPing() {
+  const fn = httpsCallable(functions, "ping");
+  const res = await fn();
+  return res.data;
+}
