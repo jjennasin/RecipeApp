@@ -37,7 +37,7 @@ export default function SearchPage() {
             {/* Camera Button */}
             <button
                 type="button"
-                className="self-stretch h-12 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-center items-center gap-[5px] text-main-navy font-['Franklin_Gothic_Book'] hover:bg-yellow-50 transition"
+                className="self-stretch h-12 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-center items-center gap-[5px] text-navy font-['Franklin_Gothic_Book'] hover:bg-greenishYellow/50 transition"
                 onClick={() => alert("Camera/ingredient detection feature coming soon!")}
             >
                 <img src="./src/assets/camera32.svg" className="w-6 h-6" alt="Camera" />
