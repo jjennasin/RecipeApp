@@ -7,7 +7,11 @@ export default function AccountPage() {
   const { user, loading } = useAuth();
   const nav = useNavigate();
 
-  if (loading) return <div className="p-4">Loading…</div>;
+  if (loading) return (
+    <div className="self-stretch text-center text-navy text-2xl font-['Orelega_One']">
+      Loading...
+    </div>
+  );
   if (!user)
     return (
       <div className="w-96 h-screen px-5 pt-9 pb-20 bg-white flex flex-col gap-5">

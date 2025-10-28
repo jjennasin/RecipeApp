@@ -13,7 +13,7 @@ export default function RecipePage() {
     const nav = useNavigate();
 
     return (
-        <div className="w-96 h-screen px-5 pt-9 pb-20 bg-white flex flex-col gap-5 overflow-y-auto scrollbar-none">
+        <div className="w-96 h-screen px-5 pt-9 pb-20 bg-white flex flex-col gap-5 overflow-y-auto no-scrollbar">
 
             {/* Upper Nav */}
             <div className="flex justify-between items-center h-10">

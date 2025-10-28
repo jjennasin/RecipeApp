@@ -6,7 +6,7 @@ export default function Browse() {
   return (
     <div
       data-layer="init Browse Recipes"
-      className="Initcolor w-96 h-screen px-5 pt-9 pb-13 relative bg-white inline-flex flex-col justify-start items-start gap-5 overflow-hidden">
+      className="Initcolor w-96 h-screen px-5 pt-9 pb-14 relative bg-white inline-flex flex-col justify-start items-start gap-5 overflow-hidden">
 
       {/* Search */}
       <button
@@ -100,10 +100,10 @@ export default function Browse() {
             className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px]">
             <div
               data-layer="Recipe"
-              className="Recipe justify-center text-main-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
+              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
             <div
               data-layer="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-main-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
+              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
           </div>
         </div>
         <div
@@ -117,10 +117,10 @@ export default function Browse() {
             className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px]">
             <div
               data-layer="Recipe"
-              className="Recipe justify-center text-main-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
+              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
             <div
               data-layer="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-main-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
+              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
           </div>
         </div>
         <div
@@ -134,10 +134,10 @@ export default function Browse() {
             className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px]">
             <div
               data-layer="Recipe"
-              className="Recipe justify-center text-main-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
+              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
             <div
               data-layer="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-main-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
+              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
           </div>
         </div>
         <div
@@ -151,10 +151,10 @@ export default function Browse() {
             className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px]">
             <div
               data-layer="Recipe"
-              className="Recipe justify-center text-main-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
+              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
             <div
               data-layer="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-main-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
+              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
           </div>
         </div>
         <div
@@ -168,10 +168,10 @@ export default function Browse() {
             className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px]">
             <div
               data-layer="Recipe"
-              className="Recipe justify-center text-main-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
+              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
             <div
               data-layer="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-main-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
+              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
           </div>
         </div>
       </div>

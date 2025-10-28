@@ -27,7 +27,7 @@ export default function SearchPage() {
     return (
         <div
             data-layer="Init search"
-            className="InitSearch w-96 h-screen px-5 pt-9 pb-20 relative bg-white inline-flex flex-col justify-start items-start gap-5 overflow-y-auto scrollbar-none"
+            className="InitSearch w-96 h-screen px-5 pt-9 pb-20 relative bg-white inline-flex flex-col justify-start items-start gap-5 overflow-y-auto no-scrollbar"
         >
             {/* Title */}
             <div className="text-center text-navy self-stretch text-4xl font-['Orelega_One']">
