@@ -54,12 +54,6 @@ const recipeSchema = {
   ],
 };
 
-/**
- * Generates a structured recipe using the Gemini API via the Fetch API.
- * This function handles API call, structure enforcement, and error management with exponential backoff.
- * @param {string} query - The user's query (e.g., "pasta, beef, and onions").
- * @returns {object|null} The generated JSON recipe object.
- */
 export async function generateRecipe(query) {
   if (!query || query.trim() === "") {
     return null;
@@ -82,8 +76,6 @@ export async function generateRecipe(query) {
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      // Use node-fetch in a local node environment (requires 'node-fetch' dependency)
-      // or global fetch in the browser/canvas.
       const fetchFunction =
         typeof fetch !== "undefined"
           ? fetch
@@ -100,7 +92,6 @@ export async function generateRecipe(query) {
         const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (jsonText) {
-          // Check for common non-JSON response issues before parsing
           if (
             jsonText.trim().startsWith("{") &&
             jsonText.trim().endsWith("}")
@@ -108,29 +99,41 @@ export async function generateRecipe(query) {
             return JSON.parse(jsonText);
           }
         }
-      } else if (response.status === 429 && attempt < MAX_RETRIES - 1) {
-        // Rate limit error (429), apply exponential backoff
-        const delay = Math.pow(2, attempt) * 1000;
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        continue; // Retry the loop
+
+        console.error(
+          "Gemini returned OK status but recipe body was empty or malformed."
+        );
       }
 
-      console.error(
-        `API request failed with status: ${response.status} ${response.statusText}`
-      );
-      return null;
-    } catch (error) {
-      console.error(
-        "Fetch API error (Is 'node-fetch' installed and is your .env file correct?):",
-        error
-      );
-      if (attempt < MAX_RETRIES - 1) {
-        const delay = Math.pow(2, attempt) * 1000;
+      if (response.status === 429 && attempt < MAX_RETRIES - 1) {
+        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+        console.log(
+          `Rate limit hit (429). Retrying in ${delay.toFixed(
+            0
+          )}ms... (Attempt ${attempt + 2})`
+        );
         await new Promise((resolve) => setTimeout(resolve, delay));
-        continue; // Retry the loop
+        continue;
       }
-      return null;
+
+      const errorMessage = `API request failed with status: ${response.status} ${response.statusText}.`;
+      console.error(errorMessage);
+
+      throw new Error(errorMessage);
+    } catch (error) {
+      if (attempt < MAX_RETRIES - 1) {
+        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+        console.warn(
+          `Fetch/Network error: ${error.message}. Retrying in ${delay.toFixed(
+            0
+          )}ms... (Attempt ${attempt + 2})`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
     }
   }
-  return null; // All retries failed
+
+  throw new Error("Recipe generation failed after maximum retries.");
 }

@@ -1,4 +1,3 @@
-// src/server/api.js
 import express from "express";
 import cors from "cors";
 import { generateRecipe } from "../services/gemini.js";
@@ -7,7 +6,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Endpoint: POST /api/recipe
 app.post("/api/recipe", async (req, res) => {
   const { query } = req.body;
   if (!query) {
