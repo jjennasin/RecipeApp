@@ -11,12 +11,10 @@ export default function Browse() {
   const fetchRandomRecipes = async () => {
     setLoading(true);
     setError(null);
-      className="Initcolor w-96 h-screen px-5 pt-9 pb-14 relative bg-white inline-flex flex-col justify-start items-start gap-5 overflow-hidden">
 
     const genericQuery = "a random, popular, and easy-to-make recipe";
     const NUM_RECIPES = 3;
     const fetchedRecipes = [];
-        className="ImputArea border border-darkYellow text-darkRed font-['Franklin_Gothic_Book'] hover:bg-greenishYellow/50 transition self-stretch h-12 p-2.5 rounded-[10px] inline-flex gap-[5px]">
 
     for (let i = 0; i < NUM_RECIPES; i++) {
       try {
@@ -116,9 +114,7 @@ export default function Browse() {
             to={`/recipe/${recipe.title.replace(/\s+/g, "-").toLowerCase()}`}
             state={{ recipeData: recipe }}
           >
-            <article
-              className={`bg-white p-5 w-64 h-48 rounded-[10px] shadow-[0px_4px_4px_0px_rgba(74,76,78,0.25)] flex flex-col justify-end`}
-            >
+            <article className="bg-white p-5 w-64 h-48 rounded-[10px] shadow-[0px_4px_4px_0px_rgba(74,76,78,0.25)] flex flex-col justify-end">
               <h2 className="text-navy font-['Franklin_Gothic_Medium'] text-xl mb-1">
                 {recipe.title || "Loading..."}
               </h2>
@@ -133,14 +129,8 @@ export default function Browse() {
 
   if (loading && recipes.length === 0) {
     return (
-        className="Recipes inline-flex self-stretch flex-col justify-start items-start gap-2.5 overflow-y-auto no-scrollbar">
+      <div className="Recipes inline-flex self-stretch flex-col justify-start items-start gap-2.5 overflow-y-auto no-scrollbar">
         <p className="text-navy">Loading recipes... 🍝</p>
-          className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5">
-              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
-          className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5">
-              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
       </div>
     );
   }
@@ -153,7 +143,7 @@ export default function Browse() {
       </div>
     );
   }
-          className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5">
+
   return (
     <div className="Initcolor w-96 h-screen px-5 pt-9 pb-14 relative bg-white inline-flex flex-col justify-start items-start gap-5 overflow-hidden">
       <button
@@ -161,11 +151,6 @@ export default function Browse() {
         type="button"
         className="ImputArea border border-darkYellow text-darkRed font-['Franklin_Gothic_Book'] hover:bg-greenishYellow/50 transition self-stretch h-12 p-2.5 rounded-[10px] inline-flex gap-[5px]"
       >
-        <img
-              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
-          className="logo"
-          alt="Search Icon"
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
         Search
       </button>
 
@@ -192,16 +177,11 @@ export default function Browse() {
               </div>
               <div className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px]">
                 <div className="RecipeTitle justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">
-          className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5">
-              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
+                  {recipe.title || "Recipe"}
                 </div>
                 <div className="RecipeCaption self-stretch justify-center text-navy text-sm font-normal font-['Franklin_Gothic_Book']">
                   {getRecipeCaption(recipe)}
                 </div>
-          className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5">
-              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
               </div>
             </div>
           </Link>
