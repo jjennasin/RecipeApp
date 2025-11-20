@@ -16,7 +16,7 @@ export default function RecipePage() {
 
   if (!recipeData) {
     return (
-      <div className="flex justify-center items-center h-screen flex-col">
+        <div className="w-96 h-screen px-5 pt-9 pb-20 bg-white flex flex-col gap-5 overflow-y-auto no-scrollbar">
         <p className="text-red-600 font-bold mb-4">Recipe Data Missing</p>     
         <p className="text-gray-700">
           Please go back to the browse page and select a recipe.      
