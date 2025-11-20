@@ -1,3 +1,4 @@
+// src/services/gemini.js
 import "dotenv/config";
 
 const apiKey = process.env.GEMINI_API_KEY || "";
@@ -57,22 +58,37 @@ const recipeSchema = {
 export async function generateRecipe(query) {
   if (!query || query.trim() === "") {
     return null;
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  console.error("GEMINI_API_KEY missing in .env");
   }
 
   const systemInstruction =
     "You are a world-class chef AI. Generate a complete recipe that strictly adheres to the user's request and the provided JSON schema. If the query is just a list of ingredients, create a dish that uses all of them.";
+const CANDIDATE_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-1.5-flash-latest",
+  "gemini-1.5-pro-latest",
+  "gemini-1.5-flash-001",
+  "gemini-1.5-pro-001",
+];
 
   const prompt = `Generate a complete recipe based on the following list of ingredients and constraints: "${query}". Ensure the output strictly follows the provided JSON schema. For the recipe_id, use a temporary value like 'TEMP_ID'.`;
+async function callGeminiWithFirstWorkingModel(promptText) {
+  for (const model of CANDIDATE_MODELS) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-  const payload = {
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: {
+    const payload = {
+      contents: [{ parts: [{ text: promptText }] }],
+      generationConfig: {
       responseMimeType: "application/json",
       responseSchema: recipeSchema,
       temperature: 0.2,
-    },
+        response_mime_type: "application/json",
+        temperature: 0.3,
+      },
     systemInstruction: { parts: [{ text: systemInstruction }] },
-  };
+    };
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
@@ -82,6 +98,7 @@ export async function generateRecipe(query) {
           : (await import("node-fetch")).default;
 
       const response = await fetchFunction(API_URL, {
+      const resp = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -90,6 +107,14 @@ export async function generateRecipe(query) {
       if (response.ok) {
         const result = await response.json();
         const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      const text = await resp.text();
+      let body;
+      try {
+        body = JSON.parse(text);
+      } catch (e) {
+        console.error(`Model ${model} returned non-JSON:`, text);
+        continue;
+      }
 
         if (jsonText) {
           if (
@@ -97,13 +122,23 @@ export async function generateRecipe(query) {
             jsonText.trim().endsWith("}")
           ) {
             return JSON.parse(jsonText);
-          }
-        }
+      if (!resp.ok || body.error) {
+        console.error(`Model ${model} failed:`, body.error || body);
+        continue;
+      }
+
+      return body;
+    } catch (e) {
+      console.error(`Fetch error for model ${model}:`, e.message);
+      continue;
+    }
+  }
 
         console.error(
           "Gemini returned OK status but recipe body was empty or malformed."
         );
-      }
+  return null;
+}
 
       if (response.status === 429 && attempt < MAX_RETRIES - 1) {
         const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
@@ -111,14 +146,81 @@ export async function generateRecipe(query) {
           `Rate limit hit (429). Retrying in ${delay.toFixed(
             0
           )}ms... (Attempt ${attempt + 2})`
-        );
+export async function generateRecipe(filters) {
+  if (!apiKey) return null;
+
+  // filters can be { query, cuisine, maxTimeMinutes, dietaryRestrictions, difficulty, notes }
+  const {
+    query,
+    cuisine,
+    maxTimeMinutes,
+    dietaryRestrictions,
+    difficulty,
+    notes,
+  } = typeof filters === "string" ? { query: filters } : filters || {};
+
+  if (!query || !query.trim()) return null;
+
+  // build constraint text
+  const constraintLines = [];
+  if (cuisine) constraintLines.push(`Cuisine: ${cuisine}.`);
+  if (maxTimeMinutes)
+    constraintLines.push(`Total time must be <= ${maxTimeMinutes} minutes.`);
+  if (dietaryRestrictions)
+    constraintLines.push(
+      `Dietary restrictions to respect: ${dietaryRestrictions}.`
+    );
         await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
-      }
+  if (difficulty)
+    constraintLines.push(`Difficulty level: ${difficulty.toUpperCase()}.`);
+  if (notes) constraintLines.push(`Other details: ${notes}.`);
+
+  const constraintsText =
+    constraintLines.length > 0
+      ? "Constraints:\n" + constraintLines.map((l) => "- " + l).join("\n")
+      : "Constraints:\n- None specified.";
+
+  const prompt = `
+Create a cooking recipe in JSON using the user's ingredients or idea.
+
+User query: "${query}"
+
+${constraintsText}
+
+Return ONLY JSON like:
+{
+  "title": "...",
+  "ingredients": [
+    { "name": "...", "quantity": "..." }
+  ],
+  "instructions": ["step 1", "step 2"],
+  "prep_time_minutes": 10,
+  "difficulty_level": "EASY",
+  "estimated_calories": 250,
+  "recipe_id": "TEMP_ID"
+}
 
       const errorMessage = `API request failed with status: ${response.status} ${response.statusText}.`;
       console.error(errorMessage);
+Rules:
+- Obey dietary restrictions if given.
+- If a max time is provided, keep prep_time_minutes <= that value.
+- If a difficulty is provided, make instructions match it (short for EASY, more steps for HARD).
+- Do not add comments or prose outside JSON.
+`;
 
+  const result = await callGeminiWithFirstWorkingModel(prompt);
+  if (!result) return null;
+
+  const jsonText =
+    result?.candidates?.[0]?.content?.parts?.[0]?.text ??
+    result?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data ??
+    null;
+
+  if (!jsonText) {
+    console.error("Gemini response didn't contain JSON text:", result);
+    return null;
       throw new Error(errorMessage);
     } catch (error) {
       if (attempt < MAX_RETRIES - 1) {
@@ -130,10 +232,20 @@ export async function generateRecipe(query) {
         );
         await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
-      }
+  }
       throw error;
+
+  const trimmed = jsonText.trim();
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    try {
+      return JSON.parse(trimmed);
+    } catch (e) {
+      console.error("Failed to parse Gemini JSON:", e.message, trimmed);
+      return null;
     }
   }
 
   throw new Error("Recipe generation failed after maximum retries.");
+  console.error("Gemini returned non-object JSON text:", trimmed);
+  return null;
 }
