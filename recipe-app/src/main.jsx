@@ -27,9 +27,8 @@ const router = createBrowserRouter([
       { index: true, element: <Navigate to="/browse" replace /> },
       { path: "browse", element: <Browse /> },
       { path: "search", element: <Search /> },
-      { path: "recipe/:recipeTitle", element: <Recipe /> },
+      { path: "recipe", element: <Recipe /> },
       { path: "saved", element: <Saved /> },
-      { path: "account", element: <AccountPage /> },
       {
         path: "account",
         element: (
@@ -50,4 +49,3 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     </AuthProvider>
   </React.StrictMode>
 );
-

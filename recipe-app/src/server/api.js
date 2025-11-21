@@ -1,4 +1,3 @@
-// src/server/api.js
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -23,7 +22,7 @@ app.post("/api/recipe", async (req, res) => {
   }
 
   try {
-    const recipe = await generateRecipe({
+    const aiResult = await generateRecipe({
       query,
       cuisine,
       maxTimeMinutes,
@@ -32,35 +31,40 @@ app.post("/api/recipe", async (req, res) => {
       notes,
     });
 
-    if (!recipe) {
+    if (!aiResult) {
       return res.status(200).json({
-        title: "Fallback Recipe",
+        title: "Fallback Recipe (AI Failed)",
         ingredients: [
-          { name: "Eggs", quantity: "2" },
-          { name: "Salt", quantity: "to taste" },
+          { name: "Flour", quantity: "1 cup" },
+          { name: "Water", quantity: "1/2 cup" },
         ],
-        instructions: [
-          "Beat eggs with salt.",
-          "Cook in a pan over medium heat.",
-        ],
+        instructions: ["Mix flour and water.", "Cook over medium heat."],
         prep_time_minutes: 5,
         difficulty_level: "EASY",
         estimated_calories: 200,
-        recipe_id: "TEMP_ID",
-        note: "Gemini failed, showing fallback.",
       });
     }
+
+    const recipe = {
+      title: aiResult.title || "Untitled Recipe",
+      ingredients: aiResult.ingredients || [],
+      instructions: aiResult.instructions || [],
+      prep_time_minutes: aiResult.prep_time_minutes || 0,
+      difficulty_level: aiResult.difficulty_level || "N/A",
+      estimated_calories: aiResult.estimated_calories || 0,
+    };
 
     return res.json(recipe);
   } catch (err) {
     console.error("Error in /api/recipe:", err);
+
     return res.status(200).json({
-      title: "Fallback Recipe",
-      ingredients: [{ name: "Ingredient", quantity: "1" }],
+      title: "Error Fallback Recipe",
+      ingredients: [{ name: "API Service", quantity: "Unavailable" }],
       instructions: ["Upstream provider failed."],
       prep_time_minutes: 1,
       difficulty_level: "EASY",
-      recipe_id: "TEMP_ID",
+      estimated_calories: 0,
     });
   }
 });

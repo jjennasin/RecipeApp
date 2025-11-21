@@ -1,65 +1,83 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-
-    return <div style={{ padding: 16 }}><h1>Saved</h1></div>;
-  }
-export default function SearchPage() {
-    const [cuisine, setCuisine] = useState("");
-    const [diet, setDiet] = useState("");
-    const [time, setTime] = useState(60);
-    const [difficulty, setDifficulty] = useState(2);
-    const [details, setDetails] = useState("");
-
-    const nav = useNavigate();
-
-    const handleSubmit = () => {
-        // Construct URL search params
-        const params = new URLSearchParams({
-            cuisine,
-            diet,
-            time: time.toString(),
-            difficulty: difficulty.toString(),
-            details,
-        });
-
-        // Navigate to /recipe with query string
-        nav(`/recipe?${params.toString()}`);
-    };
-
-const recipesMock = [
-  {
-    title: "Recipe 1",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-  },
-  {
-    title: "Recipe 2",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-  },
-    return (
-        <div
-            data-layer="Init search"
-            className="InitSearch w-96 h-screen px-5 pt-9 pb-20 relative bg-white inline-flex flex-col justify-start items-start gap-5 overflow-y-auto scrollbar-none"
-        >
-            {/* Title */}
-            <div className="text-center text-navy self-stretch text-4xl font-['Orelega_One']">
-                What are you working with?
-            </div>
-  {
-    title: "Recipe 3",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-  },
-  {
-    title: "Recipe 4",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-  },
-  {
-    title: "Recipe 5",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-  },
-];
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import {
+  getFirestore,
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+} from "firebase/firestore";
 
 export default function SavedRecipesPage() {
-  const [recipes] = useState(recipesMock);
+  const [recipes, setRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const nav = useNavigate();
+
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (!currentUser) {
+        setLoading(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const db = getFirestore();
+    const q = query(
+      collection(db, "users", user.uid, "recipes"),
+      orderBy("savedAt", "desc")
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const fetchedRecipes = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setRecipes(fetchedRecipes);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching saved recipes:", error);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const getCaption = (recipe) => {
+    const steps = recipe.instructions || recipe.steps || [];
+    if (steps.length > 0) {
+      const first = steps[0];
+      return first.length > 60 ? first.substring(0, 60) + "..." : first;
+    }
+    return "View recipe details";
+  };
+
+  if (!user && !loading) {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen gap-4">
+        <p className="text-navy text-xl font-['Franklin_Gothic_Medium']">
+          Please sign in to view saved recipes.
+        </p>
+        <button
+          onClick={() => nav("/signin")}
+          className="px-4 py-2 bg-darkYellow rounded-[10px] text-main-navy"
+        >
+          Sign In
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="w-96 h-screen px-5 pt-9 pb-14 relative bg-white inline-flex flex-col justify-start items-start gap-5 overflow-hidden">
@@ -68,252 +86,72 @@ export default function SavedRecipesPage() {
         Saved Recipes
       </div>
 
-      {/* Recipe Cards */}
+      {/* Loading State */}
+      {loading && (
+        <div className="w-full text-center text-gray-500 mt-10">
+          Loading your cookbook... 📖
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && recipes.length === 0 && (
+        <div className="w-full flex flex-col items-center mt-10 gap-3">
+          <p className="text-gray-500">No saved recipes yet.</p>
+          <button
+            onClick={() => nav("/browse")}
+            className="text-darkRed underline"
+          >
+            Go find some food!
+          </button>
+        </div>
+      )}
+
+      {/* Recipe Cards List */}
       <div
         data-layer="recipes"
-        className="Recipes inline-flex self-stretch flex-col justify-start items-start gap-2.5 overflow-y-auto no-scrollbar">
-        <div
-          data-layer="Recipe"
-          className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5">
-          <div
-            data-layer="img"
-            className="Img w-14 self-stretch relative bg-zinc-300 rounded-[10px]" />
-          <div
-            data-layer="text"
-            className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px]">
+        className="Recipes inline-flex self-stretch flex-col justify-start items-start gap-2.5 overflow-y-auto no-scrollbar"
+      >
+        {recipes.map((recipe) => (
+          <Link
+            key={recipe.id}
+            to={`/recipe?notes=${encodeURIComponent(recipe.title)}`}
+            state={{ recipeData: recipe }}
+            className="w-full"
+          >
             <div
               data-layer="Recipe"
-              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
-            <div
-              data-layer="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
-          </div>
-        </div>
-        <div
-          data-layer="Recipe"
-          className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5">
-          <div
-            data-layer="img"
-            className="Img w-14 self-stretch relative bg-zinc-300 rounded-[10px]" />
-          <div
-            data-layer="text"
-            className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px]">
-            <div
-              data-layer="Recipe"
-              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
-            <div
-              data-layer="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
-          </div>
-        </div>
-        <div
-          data-layer="Recipe"
-          className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5">
-          <div
-            data-layer="img"
-            className="Img w-14 self-stretch relative bg-zinc-300 rounded-[10px]" />
-          <div
-            data-layer="text"
-            className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px]">
-            <div
-              data-layer="Recipe"
-              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
-            <div
-              data-layer="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
-          </div>
-        </div>
-        <div
-          data-layer="Recipe"
-          className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5">
-          <div
-            data-layer="img"
-            className="Img w-14 self-stretch relative bg-zinc-300 rounded-[10px]" />
-          <div
-            data-layer="text"
-            className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px]">
-            <div
-              data-layer="Recipe"
-              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
-            <div
-              data-layer="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
-          </div>
-        </div>
-        <div
-          data-layer="Recipe"
-          className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5">
-          <div
-            data-layer="img"
-            className="Img w-14 self-stretch relative bg-zinc-300 rounded-[10px]" />
-          <div
-            data-layer="text"
-            className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px]">
-            <div
-              data-layer="Recipe"
-              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
-            <div
-              data-layer="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
-          </div>
-        </div>
-        <div
-          data-layer="Recipe"
-          className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5">
-          <div
-            data-layer="img"
-            className="Img w-14 self-stretch relative bg-zinc-300 rounded-[10px]" />
-          <div
-            data-layer="text"
-            className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px]">
-            <div
-              data-layer="Recipe"
-              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
-            <div
-              data-layer="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
-          </div>
-        </div>
-        <div
-          data-layer="Recipe"
-          className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5">
-          <div
-            data-layer="img"
-            className="Img w-14 self-stretch relative bg-zinc-300 rounded-[10px]" />
-          <div
-            data-layer="text"
-            className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px]">
-            <div
-              data-layer="Recipe"
-              className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium']">Recipe</div>
-            <div
-              data-layer="Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-              className="LoremIpsumDolorSitAmetConsecteturAdipiscingElit self-stretch justify-center text-navy text-base font-normal font-['Franklin_Gothic_Book']">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
-          </div>
-        </div>
+              className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5 hover:bg-greenishYellow/30 transition"
+            >
+              {/* Image Placeholder */}
+              <div
+                data-layer="img"
+                className="Img w-14 self-stretch relative bg-zinc-300 rounded-[10px] flex items-center justify-center text-xs text-white"
+              >
+                IMG
+              </div>
+
+              {/* Text Content */}
+              <div
+                data-layer="text"
+                className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px] min-w-0"
+              >
+                <div
+                  data-layer="RecipeTitle"
+                  className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium'] truncate w-full"
+                >
+                  {recipe.title}
+                </div>
+                <div
+                  data-layer="RecipeDesc"
+                  className="LoremIpsum self-stretch justify-center text-navy text-sm font-normal font-['Franklin_Gothic_Book'] truncate text-gray-600"
+                >
+                  {getCaption(recipe)}
+                </div>
+              </div>
+            </div>
+          </Link>
+        ))}
       </div>
-      
     </div>
   );
-}
-
-            {/* Camera Button */}
-            <button
-                type="button"
-                className="self-stretch h-12 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-center items-center gap-[5px] text-main-navy font-['Franklin_Gothic_Book'] hover:bg-yellow-50 transition"
-                onClick={() => alert("Camera/ingredient detection feature coming soon!")}
-            >
-                <img src="./src/assets/camera32.svg" className="w-6 h-6" alt="Camera" />
-                Find Ingredients
-            </button>
-
-            {/* Cuisine Dropdown */}
-            <div className="self-stretch flex flex-col gap-1">
-                <label className="text-navy text-base font-['Franklin_Gothic_Book']">
-                    Cuisine
-                </label>
-                <div className="relative w-full">
-                    <select
-                        value={cuisine}
-                        onChange={(e) => setCuisine(e.target.value)}
-                        className="appearance-none h-12 w-full p-2.5 pr-10 rounded-[10px] border border-darkYellow text-navy font-['Franklin_Gothic_Book'] bg-white focus:outline-none focus:ring-0 focus:border-darkYellow">
-                        <option value="">Select</option>
-                        <option value="italian">Italian</option>
-                        <option value="mexican">Mexican</option>
-                        <option value="indian">Indian</option>
-                        <option value="japanese">Japanese</option>
-                        <option value="american">American</option>
-                    </select>
-                    <img
-                        src="./src/assets/dArrow20.svg" alt="Dropdown Arrow"
-                        className="absolute right-3 top-1/2 w-5 h-5 transform -translate-y-1/2 pointer-events-none"
-                    />
-                </div>
-            </div>
-
-            {/* Time Slider */}
-            <div className="self-stretch flex flex-col gap-1">
-                <div className="flex justify-between text-navy text-base font-['Franklin_Gothic_Book']">
-                    <span>Time</span>
-                    <span>{time} min</span>
-                </div>
-                <input
-                    type="range"
-                    min="5"
-                    max="120"
-                    step="5"
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    className="w-full accent-darkRed"
-                />
-                <div className="flex justify-between text-darkRed text-sm font-['Franklin_Gothic_Book']">
-                    <span>5 min</span>
-                    <span>60 min</span>
-                    <span>120 min</span>
-                </div>
-            </div>
-
-            {/* Dietary Restrictions */}
-            <div className="self-stretch flex flex-col gap-1">
-                <label className="text-navy text-base font-['Franklin_Gothic_Book']">
-                    Dietary Restrictions
-                </label>
-                <select
-                    value={diet}
-                    onChange={(e) => setDiet(e.target.value)}
-                    className="h-12 w-full p-2.5 rounded-[10px] border border-darkYellow text-navy font-['Franklin_Gothic_Book']"
-                >
-                    <option value="">Select</option>
-                    <option value="vegan">Vegan</option>
-                    <option value="vegetarian">Vegetarian</option>
-                    <option value="gluten-free">Gluten-Free</option>
-                    <option value="dairy-free">Dairy-Free</option>
-                    <option value="nut-free">Nut-Free</option>
-                </select>
-            </div>
-
-            {/* Difficulty Slider */}
-            <div className="self-stretch flex flex-col gap-1">
-                <label className="text-navy text-base font-['Franklin_Gothic_Book']">
-                    Difficulty
-                </label>
-                <input
-                    type="range"
-                    min="1"
-                    max="3"
-                    step="1"
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value)}
-                    className="w-full accent-darkRed"
-                />
-                <div className="flex justify-between text-darkRed text-sm font-['Franklin_Gothic_Book']">
-                    <span>Easy</span>
-                    <span>Medium</span>
-                    <span>Hard</span>
-                </div>
-            </div>
-
-            {/* Extra Details */}
-            <div className="self-stretch flex flex-col gap-1">
-                <label className="text-navy text-base font-['Franklin_Gothic_Book']">
-                    Any other details?
-                </label>
-                <textarea
-                    value={details}
-                    onChange={(e) => setDetails(e.target.value)}
-                    placeholder="Type here..."
-                    className="h-24 w-full p-2.5 rounded-[10px] border border-darkYellow text-navy font-['Franklin_Gothic_Book'] resize-none"
-                />
-            </div>
-
-            {/* Submit */}
-            <button
-                type="button"
-                onClick={handleSubmit}
-                className="mt-3 w-full py-2  bg-lighterRed rounded-[10px] text-white text-base font-normal font-['Franklin_Gothic_Book'] hover:bg-darkRed transition-all"
-            >
-                Search Recipes
-            </button>
-        </div>
-    );
 }
