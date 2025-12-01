@@ -1,18 +1,48 @@
-// src/pages/SearchPage.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function SearchPage() {
   const [cuisine, setCuisine] = useState("");
   const [diet, setDiet] = useState("");
-  const [time, setTime] = useState(60);       // minutes
-  const [difficulty, setDifficulty] = useState(2); // 1=Easy, 2=Medium, 3=Hard
+  const [time, setTime] = useState(60);
+  const [difficulty, setDifficulty] = useState(2);
   const [details, setDetails] = useState("");
-
+  const [ingredients, setIngredients] = useState(""); // 🧠 New editable list
+  const [uploading, setUploading] = useState(false);
   const nav = useNavigate();
 
+  // ✅ Handle file upload (YOLO detection)
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("onlyDetect", "true");
+
+    try {
+      const res = await fetch("http://localhost:3001/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (data.ingredients && data.ingredients.length > 0) {
+        setIngredients(data.ingredients.join(", "));
+      } else {
+        alert("No ingredients detected.");
+      }
+    } catch (err) {
+      console.error("Upload failed:", err);
+      alert("Error detecting ingredients. Please try another image.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // ✅ Final submit: generate recipe from user input
   const handleSubmit = () => {
-    // map numeric difficulty → readable string so the next page doesn’t have to
     const difficultyText =
       difficulty === 1 || difficulty === "1"
         ? "EASY"
@@ -20,13 +50,21 @@ export default function SearchPage() {
         ? "HARD"
         : "MEDIUM";
 
-    // build params the next page can POST to backend
+    // ✨ Flexible query logic (works with or without upload)
+    const queryBase =
+      ingredients.trim() !== ""
+        ? ingredients
+        : details.trim() !== ""
+        ? details
+        : "Create a recipe";
+
     const params = new URLSearchParams({
-      cuisine,                          // ex: "italian"
-      dietaryRestrictions: diet,        // rename diet → dietaryRestrictions
-      maxTimeMinutes: time.toString(),  // ex: "60"
-      difficulty: difficultyText,       // "EASY" | "MEDIUM" | "HARD"
-      notes: details,                   // free text
+      query: queryBase,
+      cuisine,
+      dietaryRestrictions: diet,
+      maxTimeMinutes: time.toString(),
+      difficulty: difficultyText,
+      notes: details,
     });
 
     nav(`/recipe?${params.toString()}`);
@@ -41,16 +79,34 @@ export default function SearchPage() {
         What are you working with?
       </div>
 
-      <button
-        type="button"
-        className="self-stretch h-12 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-center items-center gap-[5px] text-main-navy font-['Franklin_Gothic_Book'] hover:bg-yellow-50 transition"
-        onClick={() => alert("Camera/ingredient detection feature coming soon!")}
-      >
+      {/* 🧠 Upload button */}
+      <label className="self-stretch h-12 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-center items-center gap-[5px] text-main-navy font-['Franklin_Gothic_Book'] hover:bg-yellow-50 transition cursor-pointer">
         <img src="./src/assets/camera32.svg" className="w-6 h-6" alt="Camera" />
-        Find Ingredients
-      </button>
+        {uploading ? "Detecting..." : "Upload Ingredients Image"}
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageUpload}
+        />
+      </label>
 
-      {/* Cuisine */}
+      {/* 🧾 Show detected ingredients if any */}
+      {ingredients && (
+        <div className="self-stretch flex flex-col gap-1">
+          <label className="text-navy text-base font-['Franklin_Gothic_Book']">
+            Detected Ingredients
+          </label>
+          <textarea
+            value={ingredients}
+            onChange={(e) => setIngredients(e.target.value)}
+            placeholder="Detected ingredients will appear here..."
+            className="h-24 w-full p-2.5 rounded-[10px] border border-darkYellow text-navy font-['Franklin_Gothic_Book'] resize-none"
+          />
+        </div>
+      )}
+
+      {/* 🍝 Cuisine selector */}
       <div className="self-stretch flex flex-col gap-1">
         <label className="text-navy text-base font-['Franklin_Gothic_Book']">
           Cuisine
@@ -76,7 +132,7 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* Time slider */}
+      {/* ⏱️ Time slider */}
       <div className="self-stretch flex flex-col gap-1">
         <div className="flex justify-between text-navy text-base font-['Franklin_Gothic_Book']">
           <span>Time</span>
@@ -98,7 +154,7 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* Dietary restrictions */}
+      {/* 🥦 Dietary restrictions */}
       <div className="self-stretch flex flex-col gap-1">
         <label className="text-navy text-base font-['Franklin_Gothic_Book']">
           Dietary Restrictions
@@ -117,7 +173,7 @@ export default function SearchPage() {
         </select>
       </div>
 
-      {/* Difficulty slider */}
+      {/* ⚙️ Difficulty slider */}
       <div className="self-stretch flex flex-col gap-1">
         <label className="text-navy text-base font-['Franklin_Gothic_Book']">
           Difficulty
@@ -138,7 +194,7 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* Extra details */}
+      {/* ✏️ Additional notes */}
       <div className="self-stretch flex flex-col gap-1">
         <label className="text-navy text-base font-['Franklin_Gothic_Book']">
           Any other details?
@@ -151,13 +207,14 @@ export default function SearchPage() {
         />
       </div>
 
-      {/* Submit */}
+      {/* 🔘 Final button */}
       <button
         type="button"
         onClick={handleSubmit}
-        className="mt-3 w-full py-2 bg-lighterRed rounded-[10px] text-white text-base font-normal font-['Franklin_Gothic_Book'] hover:bg-darkRed transition-all"
+        disabled={uploading}
+        className="mt-3 w-full py-2 bg-lighterRed rounded-[10px] text-white text-base font-['Franklin_Gothic_Book'] hover:bg-darkRed transition-all disabled:opacity-60"
       >
-        Search Recipes
+        {uploading ? "Detecting..." : "Search Recipes"}
       </button>
     </div>
   );
