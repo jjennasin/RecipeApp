@@ -8,20 +8,13 @@ export default function RecipePage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // read filters from URL
+  // read filters from URL (matching SearchPage)
   const params = new URLSearchParams(location.search);
   const cuisine = params.get("cuisine") || "";
-  const dietaryRestrictions = params.get("dietaryRestrictions") || "";
-  const maxTimeMinutes = params.get("maxTimeMinutes") || "";
+  const diet = params.get("diet") || "";
+  const time = params.get("time") || "";
   const difficulty = params.get("difficulty") || "";
-  const notes = params.get("notes") || "";
-
-  // derive an image URL from the recipe title or notes
-  const imageUrl = recipe
-    ? `https://source.unsplash.com/featured/?${encodeURIComponent(
-        (recipe.title || notes || "recipe") + " food"
-      )}`
-    : null;
+  const details = params.get("details") || "";
 
   useEffect(() => {
     async function fetchRecipe() {
@@ -34,14 +27,12 @@ export default function RecipePage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            query: notes || "Create a recipe",
+            query: details || "Create a recipe",
             cuisine,
-            dietaryRestrictions,
-            maxTimeMinutes: maxTimeMinutes
-              ? Number(maxTimeMinutes)
-              : undefined,
+            dietaryRestrictions: diet,
+            maxTimeMinutes: time ? Number(time) : undefined,
             difficulty,
-            notes,
+            notes: details,
           }),
         });
 
@@ -60,7 +51,7 @@ export default function RecipePage() {
     }
 
     fetchRecipe();
-  }, [cuisine, dietaryRestrictions, maxTimeMinutes, difficulty, notes]);
+  }, [cuisine, diet, time, difficulty, details]);
 
   return (
     <div className="w-96 h-screen overflow-y-auto px-5 pt-9 pb-20 bg-white">
@@ -71,17 +62,13 @@ export default function RecipePage() {
 
       {recipe && (
         <div className="space-y-4">
-          {/* image header */}
-          {imageUrl && (
-            <div className="w-full h-40 overflow-hidden rounded-[10px]">
+          {/* Image from Gemini */}
+          {recipe.imageDataUrl && (
+            <div className="w-full overflow-hidden rounded-[10px] mb-2">
               <img
-                src={imageUrl}
+                src={recipe.imageDataUrl}
                 alt={recipe.title || "Recipe image"}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.src =
-                    "https://source.unsplash.com/featured/?food";
-                }}
+                style={{ width: "100%", display: "block", borderRadius: "10px" }}
               />
             </div>
           )}
@@ -91,10 +78,7 @@ export default function RecipePage() {
           </h1>
 
           <p className="font-['Franklin_Gothic_Book']">
-            <span>
-              Prep Time: {recipe.prep_time_minutes} min
-            </span>{" "}
-            |{" "}
+            <span>Prep Time: {recipe.prep_time_minutes} min</span> |{" "}
             <span>Difficulty: {recipe.difficulty_level}</span>
           </p>
 
@@ -102,20 +86,22 @@ export default function RecipePage() {
             Ingredients
           </h2>
           <ul className="list-disc ml-5 space-y-1 font-['Franklin_Gothic_Book']">
-            {recipe.ingredients?.map((ing, i) => (
-              <li key={i}>
-                {ing.quantity} {ing.name}
-              </li>
-            ))}
+            {Array.isArray(recipe.ingredients) &&
+              recipe.ingredients.map((ing, i) => (
+                <li key={i}>
+                  {ing.quantity} {ing.name}
+                </li>
+              ))}
           </ul>
 
           <h2 className="text-xl font-['Franklin_Gothic_Medium']">
             Instructions
           </h2>
           <ol className="list-decimal ml-5 space-y-2 font-['Franklin_Gothic_Book']">
-            {recipe.instructions?.map((step, i) => (
-              <li key={i}>{step}</li>
-            ))}
+            {Array.isArray(recipe.instructions) &&
+              recipe.instructions.map((step, i) => (
+                <li key={i}>{step}</li>
+              ))}
           </ol>
 
           {recipe.estimated_calories && (

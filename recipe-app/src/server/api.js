@@ -18,7 +18,7 @@ app.post("/api/recipe", async (req, res) => {
     notes,
   } = req.body || {};
 
-  if (!query) {
+  if (!query || !query.trim()) {
     return res.status(400).json({ error: "Missing 'query' field." });
   }
 
@@ -33,27 +33,23 @@ app.post("/api/recipe", async (req, res) => {
     });
 
     if (!recipe) {
+      console.warn("generateRecipe returned null – sending fallback recipe.");
+
       return res.status(200).json({
         title: "Fallback Recipe",
-        ingredients: [
-          { name: "Eggs", quantity: "2" },
-          { name: "Salt", quantity: "to taste" },
-        ],
-        instructions: [
-          "Beat eggs with salt.",
-          "Cook in a pan over medium heat.",
-        ],
-        prep_time_minutes: 5,
+        ingredients: [{ name: "Ingredient", quantity: "1" }],
+        instructions: ["Upstream provider failed."],
+        prep_time_minutes: 1,
         difficulty_level: "EASY",
-        estimated_calories: 200,
         recipe_id: "TEMP_ID",
-        note: "Gemini failed, showing fallback.",
+        imageDataUrl: null,
       });
     }
 
     return res.json(recipe);
   } catch (err) {
     console.error("Error in /api/recipe:", err);
+
     return res.status(200).json({
       title: "Fallback Recipe",
       ingredients: [{ name: "Ingredient", quantity: "1" }],
@@ -61,6 +57,7 @@ app.post("/api/recipe", async (req, res) => {
       prep_time_minutes: 1,
       difficulty_level: "EASY",
       recipe_id: "TEMP_ID",
+      imageDataUrl: null,
     });
   }
 });

@@ -5,28 +5,19 @@ import { useNavigate } from "react-router-dom";
 export default function SearchPage() {
   const [cuisine, setCuisine] = useState("");
   const [diet, setDiet] = useState("");
-  const [time, setTime] = useState(60);       // minutes
-  const [difficulty, setDifficulty] = useState(2); // 1=Easy, 2=Medium, 3=Hard
+  const [time, setTime] = useState(60);
+  const [difficulty, setDifficulty] = useState(2);
   const [details, setDetails] = useState("");
 
   const nav = useNavigate();
 
   const handleSubmit = () => {
-    // map numeric difficulty → readable string so the next page doesn’t have to
-    const difficultyText =
-      difficulty === 1 || difficulty === "1"
-        ? "EASY"
-        : difficulty === 3 || difficulty === "3"
-        ? "HARD"
-        : "MEDIUM";
-
-    // build params the next page can POST to backend
     const params = new URLSearchParams({
-      cuisine,                          // ex: "italian"
-      dietaryRestrictions: diet,        // rename diet → dietaryRestrictions
-      maxTimeMinutes: time.toString(),  // ex: "60"
-      difficulty: difficultyText,       // "EASY" | "MEDIUM" | "HARD"
-      notes: details,                   // free text
+      cuisine,
+      diet,
+      time: time.toString(),
+      difficulty: difficulty.toString(),
+      details,
     });
 
     nav(`/recipe?${params.toString()}`);
@@ -44,7 +35,9 @@ export default function SearchPage() {
       <button
         type="button"
         className="self-stretch h-12 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-center items-center gap-[5px] text-main-navy font-['Franklin_Gothic_Book'] hover:bg-yellow-50 transition"
-        onClick={() => alert("Camera/ingredient detection feature coming soon!")}
+        onClick={() =>
+          alert("Camera/ingredient detection feature coming soon!")
+        }
       >
         <img src="./src/assets/camera32.svg" className="w-6 h-6" alt="Camera" />
         Find Ingredients
@@ -76,7 +69,7 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* Time slider */}
+      {/* Time */}
       <div className="self-stretch flex flex-col gap-1">
         <div className="flex justify-between text-navy text-base font-['Franklin_Gothic_Book']">
           <span>Time</span>
@@ -98,7 +91,7 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* Dietary restrictions */}
+      {/* Diet */}
       <div className="self-stretch flex flex-col gap-1">
         <label className="text-navy text-base font-['Franklin_Gothic_Book']">
           Dietary Restrictions
@@ -117,7 +110,7 @@ export default function SearchPage() {
         </select>
       </div>
 
-      {/* Difficulty slider */}
+      {/* Difficulty */}
       <div className="self-stretch flex flex-col gap-1">
         <label className="text-navy text-base font-['Franklin_Gothic_Book']">
           Difficulty
@@ -162,4 +155,3 @@ export default function SearchPage() {
     </div>
   );
 }
-

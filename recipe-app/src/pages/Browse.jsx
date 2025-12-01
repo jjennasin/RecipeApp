@@ -130,11 +130,10 @@ export default function Browse() {
 
       {recipe && (
   <div className="self-stretch p-3 rounded-[10px] border border-darkYellow space-y-3">
-    {/* Recipe image */}
-    {imageUrl && (
+    {recipe.imageDataUrl && (
       <div className="w-full h-40 overflow-hidden rounded-[10px] mb-1">
         <img
-          src={imageUrl}
+          src={recipe.imageDataUrl}
           alt={recipe.title || "Recipe image"}
           className="w-full h-full object-cover"
         />
@@ -144,6 +143,8 @@ export default function Browse() {
     <h2 className="text-lg font-['Franklin_Gothic_Medium'] text-main-navy">
       {recipe.title}
     </h2>
+   
+
 
     {Array.isArray(recipe.steps) && recipe.steps.length > 0 ? (
       <ol className="list-decimal ml-5 space-y-1 font-['Franklin_Gothic_Book'] text-main-navy">
