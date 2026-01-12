@@ -9,7 +9,7 @@ const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL
 const MAX_RETRIES = 3;
 
 const systemInstruction =
-  "You are a world-class chef AI. Generate a complete cooking recipe that strictly adheres to the user's request and the provided JSON schema. If the query is just a list of ingredients, create a dish that uses all of them. Do not include any external comments or prose; return only the JSON object.";
+  "You are a world-class chef AI. Generate a complete cooking recipe that strictly adheres to the user's request and the provided JSON schema. If the query is just a list of ingredients, create a dish that uses all of them. Do not include any external comments or prose; return only the JSON object. The 'image_prompt' should be a descriptive, high-quality, professional photography prompt for an image of the finished recipe.";
 
 const recipeSchema = {
   type: "OBJECT",
@@ -44,6 +44,11 @@ const recipeSchema = {
     estimated_calories: {
       type: "INTEGER",
     },
+    image_prompt: { // NEW PROPERTY
+      type: "STRING",
+      description:
+        "A detailed, professional photography prompt (e.g., 'Gourmet Lemon-Herb Salmon Fillet, served on a white plate with roasted asparagus, bokeh background, 8K photo, food photography.') for generating an image of the final dish.",
+    },
   },
   required: [
     "title",
@@ -51,6 +56,7 @@ const recipeSchema = {
     "instructions",
     "prep_time_minutes",
     "difficulty_level",
+    "image_prompt", // ADDED TO REQUIRED
   ],
 };
 

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+// src/pages/Recipe.jsx
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import {
@@ -18,53 +19,126 @@ export default function RecipePage() {
 
   const { recipeData: stateRecipeData } = location.state || {};
 
-  const [recipe, setRecipe] = useState(stateRecipeData);
+  const [recipe, setRecipe] = useState(stateRecipeData || null);
   const [loading, setLoading] = useState(!stateRecipeData && !!location.search);
   const [error, setError] = useState("");
   const [isSaved, setIsSaved] = useState(false);
   const [user, setUser] = useState(null);
-  const params = new URLSearchParams(location.search);
+
+  // imageUrl will hold either:
+  // - "/generated/xxxx.png" (relative)
+  // - "http://localhost:3001/generated/xxxx.png" (absolute)
+  // - a data URL (if you ever go back)
+  const [imageUrl, setImageUrl] = useState(stateRecipeData?.imageUrl || "");
+
+  const pageRef = useRef(null);
+  const prevSearchRef = useRef(location.search);
+
+  const params = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search]
+  );
+
   const cuisine = params.get("cuisine") || "";
   const dietaryRestrictions = params.get("dietaryRestrictions") || "";
   const maxTimeMinutes = params.get("maxTimeMinutes") || "";
   const difficulty = params.get("difficulty") || "";
   const notes = params.get("notes") || "";
 
+  // If user lands on /recipe with no state and no URL params, send them back
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
+    if (!stateRecipeData && !location.search) {
+      nav("/browse", { replace: true });
+    }
+  }, [stateRecipeData, location.search, nav]);
+
+  // Auth listener
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (currentUser) => setUser(currentUser));
+    return () => unsub();
   }, [auth]);
 
+  // Saved status check
   useEffect(() => {
-    if (!user || !recipe || !recipe.title) return;
+    if (!user || !recipe?.title) return;
 
     const recipeId = recipe.title.replace(/[^a-z0-9]/gi, "-").toLowerCase();
 
-    async function checkSavedStatus() {
-      const docRef = doc(db, "users", user.uid, "recipes", recipeId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setIsSaved(true);
+    (async () => {
+      try {
+        const docRef = doc(db, "users", user.uid, "recipes", recipeId);
+        const docSnap = await getDoc(docRef);
+        setIsSaved(docSnap.exists());
+      } catch (e) {
+        console.error("Saved status check failed:", e);
       }
-    }
-    checkSavedStatus();
-  }, [user, recipe, db]);
+    })();
+  }, [user, recipe?.title, db]);
 
+  // Clear image only when a NEW search string happens
   useEffect(() => {
-    if (stateRecipeData || !location.search) {
+    if (prevSearchRef.current !== location.search) {
+      prevSearchRef.current = location.search;
+      setImageUrl("");
+    }
+  }, [location.search]);
+
+  
+
+  // Helper: make /generated/... always load even if Vite proxy is flaky
+  const resolvedImageUrl = useMemo(() => {
+    if (!imageUrl) return "";
+    if (imageUrl.startsWith("/generated/")) return `http://localhost:3001${imageUrl}`;
+    return imageUrl;
+  }, [imageUrl]);
+
+  const fetchImage = useCallback(async (prompt, signal) => {
+    if (!prompt?.trim()) return null;
+
+    const res = await fetch("/api/image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+      signal,
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.imageUrl) {
+      throw new Error(data.error || `Image API failed (${res.status})`);
+    }
+    return data.imageUrl;
+  }, []);
+
+  // If navigated with state, use it (and show existing imageUrl if provided)
+  useEffect(() => {
+    if (!stateRecipeData) return;
+
+    setRecipe(stateRecipeData);
+    setLoading(false);
+    setError("");
+
+    if (stateRecipeData.imageUrl) {
+      setImageUrl(stateRecipeData.imageUrl);
+    }
+  }, [stateRecipeData]);
+
+  // Fetch recipe (from URL params) if not provided via state
+  useEffect(() => {
+    if (stateRecipeData) return;
+    if (!location.search) {
       setLoading(false);
       return;
     }
 
-    async function fetchRecipe() {
-      setLoading(true);
-      setError("");
-      setRecipe(null);
+    const controller = new AbortController();
 
+    (async () => {
       try {
-        const res = await fetch("http://localhost:3001/api/recipe", {
+        setLoading(true);
+        setError("");
+        setRecipe(null);
+
+        const res = await fetch("/api/recipe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -75,46 +149,90 @@ export default function RecipePage() {
             difficulty,
             notes,
           }),
+          signal: controller.signal,
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
         if (!res.ok || !data.title) {
           setError(data.error || "Failed to generate recipe");
-        } else {
-          setRecipe({
-            title: data.title || notes || "Generated Recipe",
-            instructions: Array.isArray(data.instructions)
-              ? data.instructions.filter((i) => i.trim() !== "")
-              : typeof data.instructions === "string"
-              ? data.instructions.split("\n").filter((i) => i.trim() !== "")
-              : ["No instructions provided."],
-            ingredients: data.ingredients || [],
-            prep_time_minutes:
-              data.prep_time_minutes !== undefined
-                ? data.prep_time_minutes
-                : maxTimeMinutes || "N/A",
-            difficulty_level: data.difficulty_level || difficulty || "N/A",
-          });
+          return;
         }
+
+        const newRecipe = {
+          title: data.title || notes || "Generated Recipe",
+          instructions: Array.isArray(data.instructions)
+            ? data.instructions.filter((i) => String(i).trim() !== "")
+            : typeof data.instructions === "string"
+              ? data.instructions
+                  .split("\n")
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+              : ["No instructions provided."],
+          ingredients: Array.isArray(data.ingredients) ? data.ingredients : [],
+          prep_time_minutes: data.prep_time_minutes ?? (maxTimeMinutes || "N/A"),
+          difficulty_level: data.difficulty_level || difficulty || "N/A",
+          estimated_calories: data.estimated_calories ?? 0,
+          image_prompt: data.image_prompt || "",
+          recipe_id: data.recipe_id || "TEMP_ID",
+          imageUrl: data.imageUrl || "",
+        };
+
+        setRecipe(newRecipe);
+
+        // If backend ever returns a stored imageUrl, use it immediately
+        if (newRecipe.imageUrl) setImageUrl(newRecipe.imageUrl);
       } catch (e) {
-        console.error(e);
-        setError("Could not reach server.");
+        if (e.name !== "AbortError") {
+          console.error(e);
+          setError("Could not reach server.");
+        }
       } finally {
         setLoading(false);
       }
-    }
+    })();
 
-    fetchRecipe();
+    return () => controller.abort();
   }, [
+    stateRecipeData,
+    location.search,
     cuisine,
     dietaryRestrictions,
     maxTimeMinutes,
     difficulty,
     notes,
-    location.search,
-    stateRecipeData,
   ]);
+
+  // Auto-generate image if we have a prompt but no image yet
+  useEffect(() => {
+    if (!recipe?.image_prompt) return;
+    if (imageUrl) return;
+
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const url = await fetchImage(recipe.image_prompt, controller.signal);
+        if (url) setImageUrl(url);
+      } catch (e) {
+        if (e.name !== "AbortError") console.error("Image load failed:", e);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [recipe?.image_prompt, imageUrl, fetchImage]);
+
+  // Scroll fix: when new recipe loads, snap to top
+  useEffect(() => {
+    if (!recipe?.title) return;
+    pageRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [recipe?.title]);
+
+  useEffect(() => {
+    if (!resolvedImageUrl) return;
+    pageRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [resolvedImageUrl]);
+  
 
   const handleToggleSave = async () => {
     if (!user) {
@@ -136,6 +254,7 @@ export default function RecipePage() {
           ...recipe,
           savedAt: serverTimestamp(),
           id: recipeId,
+          imageUrl: imageUrl || "",
         });
         setIsSaved(true);
       }
@@ -196,8 +315,13 @@ export default function RecipePage() {
   const heartColor = "#E54868";
 
   return (
-    <div className="w-96 h-screen px-5 pt-9 pb-20 bg-white flex flex-col gap-5 overflow-y-auto scrollbar-none">
+    <div
+      ref={pageRef}
+      className="w-96 mx-auto h-screen px-5 pt-9 pb-20 bg-white flex flex-col gap-5 overflow-y-auto scrollbar-none"
+    >
+      {/* Header */}
       <div className="flex justify-between items-center h-10">
+        {/* ✅ back arrow is an ASSET, not the recipe image */}
         <img
           src="/src/assets/bArrow20.svg"
           className="w-5 h-5 cursor-pointer"
@@ -212,11 +336,8 @@ export default function RecipePage() {
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
-            className={`w-6 h-6 stroke-[1.5px]`}
-            style={{
-              fill: isSaved ? heartColor : "none",
-              stroke: heartColor,
-            }}
+            className="w-6 h-6 stroke-[1.5px]"
+            style={{ fill: isSaved ? heartColor : "none", stroke: heartColor }}
           >
             <path
               d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
@@ -227,11 +348,38 @@ export default function RecipePage() {
         </button>
       </div>
 
-      <div className="w-full h-[250px] bg-zinc-300 rounded-[10px] mb-6" />
-      <div className="text-4xl font-['Orelega_One'] text-[#333333] mb-6">
+      {/* Title */}
+      <div className="text-4xl font-['Orelega_One'] text-[#333333] mb-2">
         {title}
       </div>
 
+      {/* ✅ BIG IMAGE RIGHT AFTER TITLE */}
+      <div
+  style={{
+    height: 220,
+    width: "100%",
+    borderRadius: 10,
+    border: "4px solid #8B3E2F",
+    overflow: "hidden",
+    marginBottom: 16,
+    background: "#e5e7eb",
+    flexShrink: 0,          // ✅ prevents flex from shrinking it
+  }}
+>
+  <img
+    src={resolvedImageUrl}
+    alt={`Image of ${title}`}
+    style={{
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+      display: "block",
+    }}
+  />
+</div>
+
+
+      {/* Details */}
       <div className="flex flex-col gap-1">
         <div className="text-navy text-xl font-['Franklin_Gothic_Medium']">
           Details
@@ -243,6 +391,7 @@ export default function RecipePage() {
         </div>
       </div>
 
+      {/* Ingredients */}
       <div className="flex flex-col gap-1">
         <div className="text-navy text-xl font-['Franklin_Gothic_Medium']">
           Ingredients
@@ -251,9 +400,7 @@ export default function RecipePage() {
           {ingredients.length > 0 ? (
             ingredients.map((item, index) => (
               <div key={index} className="flex justify-between">
-                <span className="flex-1">
-                  {item.name || "Missing Ingredient"}
-                </span>
+                <span className="flex-1">{item.name || "Missing Ingredient"}</span>
                 <span className="text-right font-bold text-darkYellow">
                   {item.quantity || "N/A"}
                 </span>
@@ -265,6 +412,7 @@ export default function RecipePage() {
         </div>
       </div>
 
+      {/* Instructions */}
       <div className="flex flex-col gap-1">
         <div className="text-navy text-xl font-['Franklin_Gothic_Medium']">
           Instructions
