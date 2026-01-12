@@ -1,3 +1,4 @@
+// src/pages/Browse.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { getAuth } from "firebase/auth";
@@ -9,6 +10,13 @@ import {
 } from "firebase/firestore";
 
 const CACHE_KEY = "cachedBrowseRecipes";
+
+const resolveImageUrl = (url) => {
+  if (!url) return "";
+  // If backend returns /generated/..., load it from the Express server
+  if (url.startsWith("/generated/")) return `http://localhost:3001${url}`;
+  return url;
+};
 
 export default function Browse() {
   const nav = useNavigate();
@@ -43,14 +51,16 @@ export default function Browse() {
 
     for (let i = 0; i < RECIPE_QUERIES.length; i++) {
       const query = RECIPE_QUERIES[i];
+
       try {
-        const res = await fetch("http://localhost:3001/api/recipe", {
+        // ✅ Fetch recipe
+        const res = await fetch("/api/recipe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query }),
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
         if (res.ok && data.title) {
           const steps =
@@ -80,20 +90,47 @@ export default function Browse() {
           const difficultyLevels = ["EASY", "MEDIUM", "HARD"];
           const difficulty = difficultyLevels[i % difficultyLevels.length];
 
+          // ✅ Fetch image (best effort)
+          let imageUrl = "";
+          try {
+            if (data.image_prompt) {
+              const imgRes = await fetch("/api/image", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: data.image_prompt }),
+              });
+
+              const imgData = await imgRes.json().catch(() => ({}));
+
+              if (imgRes.ok && imgData.imageUrl) {
+                imageUrl = resolveImageUrl(imgData.imageUrl);
+              }
+            }
+          } catch (e) {
+            console.warn("Image fetch failed for:", data.title, e);
+          }
+
           fetchedRecipes.push({
             title: data.title || query,
             instructions: steps,
             ingredients: ingredientsList,
-            prep_time_minutes: timeInMinutes,
-            difficulty_level: difficulty,
+            prep_time_minutes: data.prep_time_minutes ?? timeInMinutes,
+            difficulty_level: data.difficulty_level || difficulty,
+            estimated_calories: data.estimated_calories ?? 0,
+
+            // ✅ Keep these so Recipe page can reuse them
+            image_prompt: data.image_prompt || "",
+            imageUrl, // ✅ NEW
+
             source: "ai",
             id: `recipe-${Date.now()}-${i}`,
             isSaved: false,
           });
         } else {
-          console.error(`Failed to fetch recipe ${i}:`, data.error);
+          console.error(`Failed to fetch recipe ${i}:`, data?.error || data);
         }
 
+        // small delay to avoid rate limits
         await new Promise((r) => setTimeout(r, 500));
       } catch (err) {
         console.error(`Network error for recipe ${i}:`, err);
@@ -105,10 +142,9 @@ export default function Browse() {
       sessionStorage.setItem(CACHE_KEY, JSON.stringify(fetchedRecipes));
       setActiveCardIndex(0);
     } else {
-      setError(
-        "All recipe generation attempts failed. Please check the server logs."
-      );
+      setError("All recipe generation attempts failed. Please check the server logs.");
     }
+
     setLoading(false);
   };
 
@@ -136,6 +172,10 @@ export default function Browse() {
         difficulty: recipeToSave.difficulty_level,
         source: recipeToSave.source || "ai",
         createdAt: serverTimestamp(),
+
+        // ✅ Save image too
+        imageUrl: recipeToSave.imageUrl || "",
+        image_prompt: recipeToSave.image_prompt || "",
       });
 
       setRecipes((prevRecipes) =>
@@ -152,6 +192,8 @@ export default function Browse() {
   }
 
   useEffect(() => {
+    sessionStorage.removeItem(CACHE_KEY);
+
     const cachedRecipes = sessionStorage.getItem(CACHE_KEY);
     if (cachedRecipes) {
       try {
@@ -172,46 +214,45 @@ export default function Browse() {
   }, []);
 
   const renderRadioInputs = () =>
-    recipes
-      .slice(0, 3)
-      .map((_, index) => (
-        <input
-          key={`card-radio-${index}`}
-          id={`card-0${index + 1}`}
-          type="radio"
-          name="slider"
-          className={`sr-only peer/0${index + 1}`}
-          defaultChecked={index === activeCardIndex}
-          onChange={() => setActiveCardIndex(index)}
-        />
-      ));
+    recipes.slice(0, 3).map((_, index) => (
+      <input
+        key={`card-radio-${index}`}
+        id={`card-0${index + 1}`}
+        type="radio"
+        name="slider"
+        className={`sr-only peer/0${index + 1}`}
+        defaultChecked={index === activeCardIndex}
+        onChange={() => setActiveCardIndex(index)}
+      />
+    ));
 
   const renderCarouselCards = () =>
     recipes.slice(0, 3).map((recipe, index) => {
       const cardId = `card-0${index + 1}`;
-      let transitionClasses = `absolute inset-0 w-64 h-48 rounded-[10px] transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]`;
+      let transitionClasses =
+        "absolute inset-0 w-64 h-48 rounded-[10px] transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]";
 
       if (index === 0) {
         transitionClasses +=
           activeCardIndex === 0
             ? " relative z-50 translate-x-0"
             : activeCardIndex === 1
-            ? " translate-x-8 z-40"
-            : " translate-x-10 z-30";
+              ? " translate-x-8 z-40"
+              : " translate-x-10 z-30";
       } else if (index === 1) {
         transitionClasses +=
           activeCardIndex === 0
             ? " -translate-x-8 z-40"
             : activeCardIndex === 1
-            ? " relative z-50 translate-x-0"
-            : " translate-x-8 z-40";
+              ? " relative z-50 translate-x-0"
+              : " translate-x-8 z-40";
       } else if (index === 2) {
         transitionClasses +=
           activeCardIndex === 0
             ? " -translate-x-10 z-30"
             : activeCardIndex === 1
-            ? " -translate-x-8 z-40"
-            : " relative z-50 translate-x-0";
+              ? " -translate-x-8 z-40"
+              : " relative z-50 translate-x-0";
       }
 
       return (
@@ -219,20 +260,35 @@ export default function Browse() {
           <label className="absolute inset-0 cursor-pointer" htmlFor={cardId}>
             <span className="sr-only">{recipe.title || "Recipe"}</span>
           </label>
+
           <Link
             to={`/recipe?notes=${encodeURIComponent(recipe.title)}`}
             state={{ recipeData: recipe }}
             className="w-full h-full block"
           >
-            <article
-              className={`bg-white p-5 w-64 h-48 rounded-[10px] shadow-[0px_4px_4px_0px_rgba(74,76,78,0.25)] flex flex-col justify-end`}
-            >
-              <h2 className="text-main-navy font-['Franklin_Gothic_Medium'] text-xl mb-1">
-                {recipe.title || "Loading..."}
-              </h2>
-              <p className="text-main-navy font-['Franklin_Gothic_Book'] leading-snug text-sm">
-                {getRecipeCaption(recipe)}
-              </p>
+            <article className="bg-white p-5 w-64 h-48 rounded-[10px] shadow-[0px_4px_4px_0px_rgba(74,76,78,0.25)] flex flex-col">
+              {/* ✅ Image strip */}
+              <div className="w-full h-20 rounded-[10px] bg-zinc-200 overflow-hidden mb-3">
+                {recipe.imageUrl ? (
+                  <img
+                    src={recipe.imageUrl}
+                    alt={recipe.title}
+                    className="w-full h-full object-cover block"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : null}
+              </div>
+
+              <div className="flex-1 flex flex-col justify-end">
+                <h2 className="text-main-navy font-['Franklin_Gothic_Medium'] text-xl mb-1">
+                  {recipe.title || "Loading..."}
+                </h2>
+                <p className="text-main-navy font-['Franklin_Gothic_Book'] leading-snug text-sm">
+                  {getRecipeCaption(recipe)}
+                </p>
+              </div>
             </article>
           </Link>
         </div>
@@ -269,11 +325,7 @@ export default function Browse() {
         type="button"
         className="ImputArea border border-darkYellow text-darkRed font-['Franklin_Gothic_Book'] hover:bg-greenishYellow/50 transition self-stretch h-12 p-2.5 rounded-[10px] inline-flex gap-[5px] justify-start items-center"
       >
-        <img
-          src="./src/assets/search20.svg"
-          className="logo"
-          alt="Search Icon"
-        />
+        <img src="./src/assets/search20.svg" className="logo" alt="Search Icon" />
         Search
       </button>
 
@@ -295,9 +347,24 @@ export default function Browse() {
             className="w-full"
           >
             <div className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5 hover:bg-greenishYellow/30 transition w-full">
-              <div className="Img w-14 self-stretch relative bg-zinc-300 rounded-[10px] flex items-center justify-center text-xs text-white">
-                IMG
+              {/* ✅ Thumbnail */}
+              <div className="Img w-14 self-stretch relative bg-zinc-300 rounded-[10px] overflow-hidden">
+                {recipe.imageUrl ? (
+                  <img
+                    src={recipe.imageUrl}
+                    alt={recipe.title}
+                    className="w-full h-full object-cover block"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs text-white">
+                    IMG
+                  </div>
+                )}
               </div>
+
               <div className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px] min-w-0">
                 <div className="RecipeTitle text-main-navy text-base font-normal font-['Franklin_Gothic_Medium'] truncate">
                   {recipe.title}
