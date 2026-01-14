@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+// src/pages/Saved.jsx (or whatever your saved page file is named)
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import {
@@ -8,6 +9,12 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
+
+const resolveImageUrl = (url) => {
+  if (!url) return "";
+  if (url.startsWith("/generated/")) return `http://localhost:3001${url}`;
+  return url;
+};
 
 export default function SavedRecipesPage() {
   const [recipes, setRecipes] = useState([]);
@@ -19,9 +26,7 @@ export default function SavedRecipesPage() {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      if (!currentUser) {
-        setLoading(false);
-      }
+      if (!currentUser) setLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -38,10 +43,16 @@ export default function SavedRecipesPage() {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const fetchedRecipes = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const fetchedRecipes = snapshot.docs.map((docSnap) => {
+          const data = docSnap.data() || {};
+          return {
+            id: docSnap.id,
+            ...data,
+            // normalize imageUrl so it always loads
+            imageUrl: resolveImageUrl(data.imageUrl || ""),
+          };
+        });
+
         setRecipes(fetchedRecipes);
         setLoading(false);
       },
@@ -107,10 +118,7 @@ export default function SavedRecipesPage() {
       )}
 
       {/* Recipe Cards List */}
-      <div
-        data-layer="recipes"
-        className="Recipes inline-flex self-stretch flex-col justify-start items-start gap-2.5 overflow-y-auto no-scrollbar"
-      >
+      <div className="Recipes inline-flex self-stretch flex-col justify-start items-start gap-2.5 overflow-y-auto no-scrollbar">
         {recipes.map((recipe) => (
           <Link
             key={recipe.id}
@@ -118,33 +126,32 @@ export default function SavedRecipesPage() {
             state={{ recipeData: recipe }}
             className="w-full"
           >
-            <div
-              data-layer="Recipe"
-              className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5 hover:bg-greenishYellow/30 transition"
-            >
-              {/* Image Placeholder */}
-              <div
-                data-layer="img"
-                className="Img w-14 self-stretch relative bg-zinc-300 rounded-[10px] flex items-center justify-center text-xs text-white"
-              >
-                IMG
+            <div className="Recipe h-20 p-2.5 rounded-[10px] border border-darkYellow inline-flex justify-start items-center gap-2.5 hover:bg-greenishYellow/30 transition w-full">
+              {/* ✅ Image thumbnail */}
+              <div className="Img w-14 self-stretch relative bg-zinc-300 rounded-[10px] overflow-hidden">
+                {recipe.imageUrl ? (
+                  <img
+                    src={recipe.imageUrl}
+                    alt={recipe.title}
+                    className="w-full h-full object-cover block"
+                    onError={(e) => {
+                      // if image fails, fall back to "IMG"
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs text-white">
+                    IMG
+                  </div>
+                )}
               </div>
 
               {/* Text Content */}
-              <div
-                data-layer="text"
-                className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px] min-w-0"
-              >
-                <div
-                  data-layer="RecipeTitle"
-                  className="Recipe justify-center text-navy text-base font-normal font-['Franklin_Gothic_Medium'] truncate w-full"
-                >
+              <div className="Text flex-1 inline-flex flex-col justify-center items-start gap-[3px] min-w-0">
+                <div className="RecipeTitle text-navy text-base font-normal font-['Franklin_Gothic_Medium'] truncate w-full">
                   {recipe.title}
                 </div>
-                <div
-                  data-layer="RecipeDesc"
-                  className="LoremIpsum self-stretch justify-center text-navy text-sm font-normal font-['Franklin_Gothic_Book'] truncate text-gray-600"
-                >
+                <div className="RecipeDesc self-stretch text-navy text-sm font-normal font-['Franklin_Gothic_Book'] truncate text-gray-600">
                   {getCaption(recipe)}
                 </div>
               </div>
