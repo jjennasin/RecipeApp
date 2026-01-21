@@ -22,11 +22,13 @@ export default function SearchPage() {
     formData.append("onlyDetect", "true");
 
     try {
-      const res = await fetch("http://localhost:3001/api/upload", {
+      const res = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
+      console.log("UPLOAD status:", res.status, "response:", data);
+
 
       if (data.ingredients && data.ingredients.length > 0) {
         setIngredients(data.ingredients.join(", "));
