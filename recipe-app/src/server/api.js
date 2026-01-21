@@ -3,8 +3,6 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 
-import fs from "fs";
-import path from "path";
 import crypto from "crypto";
 
 import { generateRecipe } from "../services/gemini.js";
