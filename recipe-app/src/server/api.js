@@ -1,5 +1,18 @@
 // src/server/api.js
 import "dotenv/config";
+//TEST
+console.log("cwd:", process.cwd());
+console.log(
+  "GEMINI_API_KEY length:",
+  (process.env.GEMINI_API_KEY || "").length
+);
+console.log(
+  "GEMINI_API_KEY starts:",
+  (process.env.GEMINI_API_KEY || "").slice(0, 6)
+);
+//TEST
+
+
 import express from "express";
 import cors from "cors";
 
